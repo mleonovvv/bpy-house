@@ -5,34 +5,34 @@ from typing import Tuple, List
 
 
 def mesh_new(name : str) -> Mesh:
-    if name in bpy.data.meshes:
-        mesh = bpy.data.meshes[name]
-        mesh.clear_geometry()
-    else:
-        mesh = bpy.data.meshes.new(name)
+    #if name in bpy.data.meshes:
+    #    mesh = bpy.data.meshes[name]
+    #    mesh.clear_geometry()
+    #else:
+    mesh = bpy.data.meshes.new(name)
 
     return mesh
     
 def obj_new(mesh_name : str, mesh : Mesh, material="") -> Object:
     
-    if mesh_name in bpy.data.objects:
-        obj = bpy.data.objects[mesh_name]
-        obj.data = mesh
-    else:
-        obj = bpy.data.objects.new(mesh_name, mesh)
+    #if mesh_name in bpy.data.objects:
+    #    obj = bpy.data.objects[mesh_name]
+    #    obj.data = mesh
+    #else:
+    obj = bpy.data.objects.new(mesh_name, mesh)
 
-    obj.data.materials.clear()
+    #obj.data.materials.clear()
     obj.data.materials.append(material)
     # obj.data.materials.insert(material)
     return obj
 
 def obj_to_col(obj : Object, col : Collection) -> None:
-    for c in bpy.data.collections:
-        if obj.name in c.objects:
-            col.objects.unlink(obj)
-    for sc in bpy.data.scenes:
-        if obj.name in sc.collection.objects:
-            sc.collection.objects.unlink(obj)
+    #for c in bpy.data.collections:
+    #    if obj.name in c.objects:
+    #        col.objects.unlink(obj)
+    #for sc in bpy.data.scenes:
+    #    if obj.name in sc.collection.objects:
+    #sc.collection.objects.unlink(obj)
 
     col.objects.link(obj)
 
@@ -45,8 +45,8 @@ def build_mesh(x, y, z, start_x, start_y, start_z) -> Tuple[List[Tuple]]:
     x_right = start_x + y
     y_outer = start_y + x
     z_max = start_z + z
-    print(f'start_x: {start_x}')
-    print(f'start_y: {start_y}')
+    #print(f'start_x: {start_x}')
+    # print(f'start_y: {start_y}')
 
     vertices = [
         ( start_y, start_x, start_z), # 1
@@ -73,31 +73,54 @@ def build_mesh(x, y, z, start_x, start_y, start_z) -> Tuple[List[Tuple]]:
     return vertices, edges, faces
 
 def build_house():
-    house_size_x = 10
-    house_size_y = 8
-    house_size_z = 2
+    house_size_x = 4
+    house_size_y = 6
+    house_size_z = 2.5
     wall_width = 0.1
     covering_width = 0.2
     columns_width = 0.2
+    floors = 2
+    start_z = 0
     assert house_size_y >= 2
 
     create_basement(house_size_x, house_size_y)
-    create_covering(house_size_x, house_size_y, house_size_z, covering_width)
-    create_colums(house_size_x, house_size_y, house_size_z, columns_width)
-    create_floor()
-    create_walls2(house_size_x, house_size_y, house_size_z, wall_width, covering_width, covering_width)
-    # create_walls(width, depth, height, number_of_parts)
+    create_roof(house_size_x, house_size_y, floors, house_size_z)
+    for floor in range(0, floors):
+        wall_start_z = start_z
+        #if floor != 0:
+        #    wall_start_z += covering_width
+        #    print(f'wall_start_z: {wall_start_z}')
+        create_covering(house_size_x, house_size_y, house_size_z, covering_width, start_z)
+        create_colums(house_size_x, house_size_y, house_size_z, columns_width, start_z)
+        create_floor()
+        create_walls2(house_size_x, house_size_y, house_size_z, wall_width, covering_width, wall_start_z)
+        
+        start_z += house_size_z
+        # create_walls(width, depth, height, number_of_parts)
 
 def create_basement(house_size_x, house_size_y):
     material = bpy.data.materials['basement']
+    x = house_size_x + 0.2
+    y = house_size_y + 0.2
     z = 1
-    start_x = 0
-    start_y = 0
+    start_x = 0 - 0.1
+    start_y = 0 - 0.1
     start_z = -1
     name = "basement"
-    create_mesh(name, material, house_size_x, z, house_size_y, start_x, start_y, start_z)
+    create_mesh(name, material, x, z, y, start_x, start_y, start_z)
 
-def create_covering(house_size_x, house_size_y, house_size_z, covering_width):
+def create_roof(house_size_x, house_size_y, floors, house_size_z):
+    material = bpy.data.materials['basement']
+    x = house_size_x + 0.6
+    y = house_size_y + 0.6
+    z = 3
+    start_x = 0 - 0.3
+    start_y = 0 - 0.3
+    start_z = floors * house_size_z + 1
+    name = "roof"
+    create_mesh(name, material, x, z, y, start_x, start_y, start_z)
+
+def create_covering(house_size_x, house_size_y, house_size_z, covering_width, start_z):
     material = bpy.data.materials['wood']
     # name = "covering"
     wall_x = covering_width
@@ -105,38 +128,39 @@ def create_covering(house_size_x, house_size_y, house_size_z, covering_width):
     wall_z = covering_width
     start_x = 0
     start_y = 0
-    start_z = 0
+    _start_z = start_z
     offset = 0
     otstup = covering_width
     
     for floor in range(0, 2):
-        name = f'covering_{floor}'
-        create_y_axes(name, material, house_size_x, house_size_y, wall_x, wall_y, wall_z, start_x, start_y, start_z, offset, otstup)
+        name = f'covering_{floor}_{_start_z}'
+        create_y_axes(name, material, house_size_x, house_size_y, wall_x, wall_y, wall_z, start_x, start_y, _start_z, offset, otstup)
         wall_x = 1
         wall_y = covering_width
-        create_x_axes(name, material, house_size_x, house_size_y, wall_x, wall_y, wall_z, start_x, start_y, start_z, offset, otstup)
-        start_z = house_size_z + covering_width
+        create_x_axes(name, material, house_size_x, house_size_y, wall_x, wall_y, wall_z, start_x, start_y, _start_z, offset, otstup)
+        _start_z = start_z + house_size_z - covering_width
         wall_x = covering_width
         wall_y = 1
 
-def create_walls2(house_size_x, house_size_y, house_size_z, wall_width, start_z, otstup):
+def create_walls2(house_size_x, house_size_y, house_size_z, wall_width, otstup, start_z):
     material = bpy.data.materials['wall']
     name = "wall"
     wall_x = wall_width
-    wall_y = 2
-    wall_z = house_size_z
+    wall_y = 1
+    wall_z = house_size_z - (otstup * 2)
     offset = 0.05
     # wall_count = house_size_y / wall_y
     start_x = offset
     start_y = 0
+    _start_z = start_z + otstup
     #otstup = 0.2
     
-    create_y_axes(name, material, house_size_x, house_size_y, wall_x, wall_y, wall_z, start_x, start_y, start_z, offset, otstup)
-    wall_x = 2
+    create_y_axes(name, material, house_size_x, house_size_y, wall_x, wall_y, wall_z, start_x, start_y, _start_z, offset, otstup)
+    wall_x = 1
     wall_y = wall_width
     start_x = 0
     start_y = offset
-    create_x_axes(name, material, house_size_x, house_size_y, wall_x, wall_y, wall_z, start_x, start_y, start_z, offset, otstup)
+    create_x_axes(name, material, house_size_x, house_size_y, wall_x, wall_y, wall_z, start_x, start_y, _start_z, offset, otstup)
 
 def create_y_axes(name, material, house_size_x, house_size_y, wall_x, wall_y, wall_z, start_x, start_y, start_z, offset, otstup = 0.0):
     wall_count = house_size_y / wall_y
@@ -187,32 +211,32 @@ def create_x_axes(name, material, house_size_x, house_size_y, wall_x, wall_y, wa
 def create_floor():
     pass
 
-def create_colums(house_size_x, house_size_y, house_size_z, columns_width):
+def create_colums(house_size_x, house_size_y, house_size_z, columns_width, start_z):
     material = bpy.data.materials['wood']
     column_x = columns_width
     column_z = 1
     column_y = columns_width
     start_x = 0
     start_y = 0
-    start_z = columns_width
+    # start_z = 0
 
     for xxx in range(0, 2):
         # height = house_size_z / column_z
         for yyy in range(0, 2):
-            height = house_size_z / column_z
-            for zzz in range(0, int(height)):
-                if zzz == 0:
-                    _start_z = start_z - columns_width
-                    _column_z = column_z + columns_width
-                elif zzz == int(height) - 1:
-                    _column_z = column_z + columns_width
-                else:
-                    # _start_z = start_z
-                    _column_z = column_z
-                name = f'column_{xxx}_{yyy}_{zzz}'
-                create_mesh(name, material, column_x, _column_z, column_y, start_y, start_x, _start_z)
-                _start_z += _column_z
-            #_start_z = 0.2
+            # height = house_size_z / column_z
+            # for zzz in range(0, int(height)):
+            #     if zzz == 0:
+            #         _start_z = start_z - columns_width
+            #         _column_z = column_z + columns_width
+            #     elif zzz == int(height) - 1:
+            #         _column_z = column_z + columns_width
+            #     else:
+            #         # _start_z = start_z
+            _column_z = house_size_z
+            name = f'column_{xxx}_{yyy}'
+            create_mesh(name, material, column_x, _column_z, column_y, start_y, start_x, start_z)
+            # _start_z += _column_z
+            # _start_z = 0.2
             start_y = house_size_y - column_y
         start_y = 0
         start_x = house_size_x - column_x
@@ -270,12 +294,10 @@ if __name__ == "__main__":
 
     for material in materials:
         if material in bpy.data.materials:
-            mat = bpy.data.materials[material]
-            bpy.data.materials.remove(mat)
+            pass
+            #mat = bpy.data.materials[material]
+            #bpy.data.materials.remove(mat)
 
         mat = bpy.data.materials.new(material)
         mat.diffuse_color = materials[material]
     build_house()
-
-
-
